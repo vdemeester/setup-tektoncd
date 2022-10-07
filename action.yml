@@ -23,7 +23,7 @@ runs:
 
   steps:
   - name: Install tektoncd/pipeline
-    id: tektoncd/pipeline
+    id: tektoncd-pipeline
     shell: bash
     run: |
       function fetch_release() {
@@ -33,20 +33,22 @@ runs:
         local URL=""
 
         if [[ "${VERSION}" == "nightly" ]]; then
-          URL="https://storage.googleapis.com/tekton-releases-nightly/${COMPONENT}/latest/{FILE}.yaml"
+          URL="https://storage.googleapis.com/tekton-releases-nightly/${COMPONENT}/latest/${FILE}"
         elif [[ "${VERSION}" == "latest" ]]; then
-          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/latest/${FILE}.yaml"
+          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/latest/${FILE}"
         elif [[ "${VERSION}" = *".x"* ]]; then
           INPUT=$(echo "${VERSION}" | sed 's/.x//g' | sed 's/v//g')
           VERSION=$(curl -L -s https://api.github.com/repos/tektoncd/${COMPONENT}/git/refs/tags | jq -r '.[].ref' | sed 's/refs\/tags\/.*v//g' | grep ${INPUT} | sort -n | tail -1)
-          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/previous/${VERSION}/${FILE}.yaml"
+          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/previous/v${VERSION}/${FILE}"
         else
-          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/previous/${VERSION}/${FILE}.yaml"
+          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/previous/${VERSION}/${FILE}"
         fi
 
+        set -x
         curl -L -s "${URL}" \
           `# Filter out empty objects that come out as {} b/c kubectl barfs` \
           | grep -v '^{}$'
+        set +x
       }
 
       fetch_release pipeline release.yaml ${{ inputs.pipeline }} | kubectl apply -f -

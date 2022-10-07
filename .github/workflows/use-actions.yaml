@@ -7,7 +7,7 @@ on:
 defaults:
   run:
     shell: bash
-    workding-directory: ./
+    working-directory: ./
 
 concurrency:
   group: test-github-action${{ github.head_ref }}
@@ -32,9 +32,12 @@ jobs:
     - uses: chainguard-dev/actions/setup-kind@main
       with:
         k8s-version: v1.23.x
+    - run: |
+        kubectl cluster-info --context kind-kind
+        kubectl version
     - name: Test this action
       uses: ./
       with:
-        pipeline-version: ${{ matrix.pipeline-version }}
+        pipeline: ${{ matrix.pipeline-version }}
         pipeline-feature-flags: >-
           {"enable-api-fields": "alpha"}
