@@ -13,3 +13,5 @@ An action to setup tekton on a kubernetes instance in a GitHub workflow
     # For example, {"enable-api-fields": "alpha"}
     pipeline-feature-flags: '{}'
 ```
+
+Only setup `tektoncd/pipeline` is supported today
