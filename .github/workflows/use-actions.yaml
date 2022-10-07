@@ -1,0 +1,40 @@
+name: Test setup-tektoncd action
+
+on:
+  pull_request:
+    branches: [ main ]
+
+defaults:
+  run:
+    shell: bash
+    workding-directory: ./
+
+concurrency:
+  group: test-github-action${{ github.head_ref }}
+  cancel-in-progress: true
+    
+jobs:
+  test-github-action:
+    name: Test setup-tektoncd github action
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # Keep running if one leg fails.
+      matrix:
+        pipeline-version:
+        - v0.40.x
+        - latest
+        - nightly
+        - v0.37.5
+
+    steps:
+    - uses: actions/checkout@v3
+    # Setup kind prior to this action
+    - uses: chainguard-dev/actions/setup-kind@main
+      with:
+        k8s-version: v1.23.x
+    - name: Test this action
+      uses: ./
+      with:
+        pipeline-version: ${{ matrix.pipeline-version }}
+        pipeline-feature-flags: >-
+          {"enable-api-fields": "alpha"}

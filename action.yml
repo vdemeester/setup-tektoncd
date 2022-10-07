@@ -1,0 +1,69 @@
+name: 'Setup Tektoncd components'
+description: |
+  This action sets up Tetkoncd components on the current
+  kubectl context (typically KinD from setup-kind).
+
+inputs:
+  pipeline:
+    description: |
+      The version of tektoncd/pipeline to install, e.g. 0.37.5. You can also specify "nightly"
+      to get the nightly version instead.
+    required: true
+    default: v0.40.2
+  pipeline-feature-flags:
+    description: |
+      The serialized JSON for the tektoncd/pipeline feature-flags configmap
+      containing the features to be enabled, e.g.
+        {"enable-api-fields": "alpha"}
+    required: true
+    default: '{}'
+
+runs:
+  using: "composite"
+
+  steps:
+  - name: Install tektoncd/pipeline
+    id: tektoncd/pipeline
+    shell: bash
+    run: |
+      function fetch_release() {
+        local COMPONENT="${1}"
+        local FILE="${2}"
+        local VERSION="${3}"
+        local URL=""
+
+        if [[ "${VERSION}" == "nightly" ]]; then
+          URL="https://storage.googleapis.com/tekton-releases-nightly/${COMPONENT}/latest/{FILE}.yaml"
+        elif [[ "${VERSION}" == "latest" ]]; then
+          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/latest/${FILE}.yaml"
+        elif [[ "${VERSION}" = *".x"* ]]; then
+          INPUT=$(echo "${VERSION}" | sed 's/.x//g' | sed 's/v//g')
+          VERSION=$(curl -L -s https://api.github.com/repos/tektoncd/${COMPONENT}/git/refs/tags | jq -r '.[].ref' | sed 's/refs\/tags\/.*v//g' | grep ${INPUT} | sort -n | tail -1)
+          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/previous/${VERSION}/${FILE}.yaml"
+        else
+          URL="https://storage.googleapis.com/tekton-releases/${COMPONENT}/previous/${VERSION}/${FILE}.yaml"
+        fi
+
+        curl -L -s "${URL}" \
+          `# Filter out empty objects that come out as {} b/c kubectl barfs` \
+          | grep -v '^{}$'
+      }
+
+      fetch_release pipeline release.yaml ${{ inputs.pipeline }} | kubectl apply -f -
+
+      sleep 5 # Just for the sake of it
+
+      # Wait for tektoncd/pipeline to bu ready
+      for x in $(kubectl get deploy --namespace tekton-pipelines -o name); do
+        kubectl rollout status --timeout 5m --namespace tekton-pipelines $x
+      done
+
+      # Patch feature-flags
+      while ! kubectl patch configmap/feature-flags \
+        --namespace tekton-pipelines \
+        --type merge \
+        --patch '{"data":${{ inputs.pipeline-feature-flags }}}'
+      do
+        echo Waiting for webhook to be up.
+        sleep 1
+      done
