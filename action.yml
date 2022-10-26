@@ -69,3 +69,7 @@ runs:
         echo Waiting for webhook to be up.
         sleep 1
       done
+
+      # Install tkn
+      curl -Lo tkn.tar.xz https://github.com/tektoncd/cli/releases/download/v0.27.0/tkn_0.27.0_Linux_x86_64.tar.gz
+      tar zxvf tkn.tar.xz -C /usr/local/bin && rm tkn.tar.xz && chmod +x /usr/local/bin/tkn

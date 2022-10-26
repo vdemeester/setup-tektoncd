@@ -41,3 +41,6 @@ jobs:
         pipeline: ${{ matrix.pipeline-version }}
         pipeline-feature-flags: >-
           {"enable-api-fields": "alpha"}
+    - name: Validate
+      run: |
+        tkn version
