@@ -9,7 +9,7 @@ inputs:
       The version of tektoncd/pipeline to install, e.g. 0.37.5. You can also specify "nightly"
       to get the nightly version instead.
     required: true
-    default: v0.40.2
+    default: v0.44.0
   pipeline-feature-flags:
     description: |
       The serialized JSON for the tektoncd/pipeline feature-flags configmap
